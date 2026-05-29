@@ -40,4 +40,9 @@ final class Session {
     var spotCount: Int {
         measurements.count
     }
+
+    var photoURL: URL? {
+        guard !photoPath.isEmpty else { return nil }
+        return URL(fileURLWithPath: photoPath)
+    }
 }

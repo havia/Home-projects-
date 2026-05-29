@@ -1,0 +1,389 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		864EF0D2D07B481CB4004D01 /* VitiligoTrackerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 864EF0D2D07B481CB4004D00 /* VitiligoTrackerApp.swift */; };
+		864EF0D2D07B481CB4004D02 /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = 864EF0D2D07B481CB4004D10 /* Session.swift */; };
+		864EF0D2D07B481CB4004D03 /* Spot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 864EF0D2D07B481CB4004D11 /* Spot.swift */; };
+		864EF0D2D07B481CB4004D04 /* SpotMeasurement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 864EF0D2D07B481CB4004D12 /* SpotMeasurement.swift */; };
+		864EF0D2D07B481CB4004D05 /* ImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 864EF0D2D07B481CB4004D13 /* ImageProcessor.swift */; };
+		864EF0D2D07B481CB4004D06 /* VideoFrameExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 864EF0D2D07B481CB4004D14 /* VideoFrameExtractor.swift */; };
+		864EF0D2D07B481CB4004D07 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 864EF0D2D07B481CB4004D15 /* ContentView.swift */; };
+		864EF0D2D07B481CB4004D08 /* CaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 864EF0D2D07B481CB4004D16 /* CaptureView.swift */; };
+		864EF0D2D07B481CB4004D09 /* SpotMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 864EF0D2D07B481CB4004D17 /* SpotMapView.swift */; };
+		864EF0D2D07B481CB4004D20 /* SessionsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 864EF0D2D07B481CB4004D18 /* SessionsListView.swift */; };
+		864EF0D2D07B481CB4004D21 /* ProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 864EF0D2D07B481CB4004D19 /* ProgressView.swift */; };
+		864EF0D2D07B481CB4004D22 /* CompareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 864EF0D2D07B481CB4004D1A /* CompareView.swift */; };
+		864EF0D2D07B481CB4004D23 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 864EF0D2D07B481CB4004D30 /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		864EF0D2D07B481CB4004D00 /* VitiligoTrackerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VitiligoTrackerApp.swift; sourceTree = "<group>"; };
+		864EF0D2D07B481CB4004D10 /* Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
+		864EF0D2D07B481CB4004D11 /* Spot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Spot.swift; sourceTree = "<group>"; };
+		864EF0D2D07B481CB4004D12 /* SpotMeasurement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotMeasurement.swift; sourceTree = "<group>"; };
+		864EF0D2D07B481CB4004D13 /* ImageProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageProcessor.swift; sourceTree = "<group>"; };
+		864EF0D2D07B481CB4004D14 /* VideoFrameExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoFrameExtractor.swift; sourceTree = "<group>"; };
+		864EF0D2D07B481CB4004D15 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		864EF0D2D07B481CB4004D16 /* CaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureView.swift; sourceTree = "<group>"; };
+		864EF0D2D07B481CB4004D17 /* SpotMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotMapView.swift; sourceTree = "<group>"; };
+		864EF0D2D07B481CB4004D18 /* SessionsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionsListView.swift; sourceTree = "<group>"; };
+		864EF0D2D07B481CB4004D19 /* ProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressView.swift; sourceTree = "<group>"; };
+		864EF0D2D07B481CB4004D1A /* CompareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompareView.swift; sourceTree = "<group>"; };
+		864EF0D2D07B481CB4004D30 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		864EF0D2D07B481CB4004D31 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		864EF0D2D07B481CB4004DFF /* VitiligoTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VitiligoTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		864EF0D2D07B481CB4004D40 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		864EF0D2D07B481CB4004D50 /* VitiligoTracker */ = {
+			isa = PBXGroup;
+			children = (
+				864EF0D2D07B481CB4004D00 /* VitiligoTrackerApp.swift */,
+				864EF0D2D07B481CB4004D60 /* Models */,
+				864EF0D2D07B481CB4004D61 /* Services */,
+				864EF0D2D07B481CB4004D62 /* Views */,
+				864EF0D2D07B481CB4004D30 /* Assets.xcassets */,
+				864EF0D2D07B481CB4004D31 /* Info.plist */,
+			);
+			path = VitiligoTracker;
+			sourceTree = "<group>";
+		};
+		864EF0D2D07B481CB4004D60 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				864EF0D2D07B481CB4004D10 /* Session.swift */,
+				864EF0D2D07B481CB4004D11 /* Spot.swift */,
+				864EF0D2D07B481CB4004D12 /* SpotMeasurement.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		864EF0D2D07B481CB4004D61 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				864EF0D2D07B481CB4004D13 /* ImageProcessor.swift */,
+				864EF0D2D07B481CB4004D14 /* VideoFrameExtractor.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		864EF0D2D07B481CB4004D62 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				864EF0D2D07B481CB4004D15 /* ContentView.swift */,
+				864EF0D2D07B481CB4004D16 /* CaptureView.swift */,
+				864EF0D2D07B481CB4004D17 /* SpotMapView.swift */,
+				864EF0D2D07B481CB4004D18 /* SessionsListView.swift */,
+				864EF0D2D07B481CB4004D19 /* ProgressView.swift */,
+				864EF0D2D07B481CB4004D1A /* CompareView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		864EF0D2D07B481CB4004D70 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				864EF0D2D07B481CB4004DFF /* VitiligoTracker.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		864EF0D2D07B481CB4004D80 = {
+			isa = PBXGroup;
+			children = (
+				864EF0D2D07B481CB4004D50 /* VitiligoTracker */,
+				864EF0D2D07B481CB4004D70 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		864EF0D2D07B481CB4004D90 /* VitiligoTracker */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 864EF0D2D07B481CB4004DA0 /* Build configuration list for PBXNativeTarget "VitiligoTracker" */;
+			buildPhases = (
+				864EF0D2D07B481CB4004DB0 /* Sources */,
+				864EF0D2D07B481CB4004D40 /* Frameworks */,
+				864EF0D2D07B481CB4004DC0 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = VitiligoTracker;
+			productName = VitiligoTracker;
+			productReference = 864EF0D2D07B481CB4004DFF /* VitiligoTracker.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		864EF0D2D07B481CB4004DE0 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					864EF0D2D07B481CB4004D90 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = 864EF0D2D07B481CB4004DF0 /* Build configuration list for PBXProject "VitiligoTracker" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 864EF0D2D07B481CB4004D80;
+			productRefGroup = 864EF0D2D07B481CB4004D70 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				864EF0D2D07B481CB4004D90 /* VitiligoTracker */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		864EF0D2D07B481CB4004DC0 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				864EF0D2D07B481CB4004D23 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		864EF0D2D07B481CB4004DB0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				864EF0D2D07B481CB4004D01 /* VitiligoTrackerApp.swift in Sources */,
+				864EF0D2D07B481CB4004D02 /* Session.swift in Sources */,
+				864EF0D2D07B481CB4004D03 /* Spot.swift in Sources */,
+				864EF0D2D07B481CB4004D04 /* SpotMeasurement.swift in Sources */,
+				864EF0D2D07B481CB4004D05 /* ImageProcessor.swift in Sources */,
+				864EF0D2D07B481CB4004D06 /* VideoFrameExtractor.swift in Sources */,
+				864EF0D2D07B481CB4004D07 /* ContentView.swift in Sources */,
+				864EF0D2D07B481CB4004D08 /* CaptureView.swift in Sources */,
+				864EF0D2D07B481CB4004D09 /* SpotMapView.swift in Sources */,
+				864EF0D2D07B481CB4004D20 /* SessionsListView.swift in Sources */,
+				864EF0D2D07B481CB4004D21 /* ProgressView.swift in Sources */,
+				864EF0D2D07B481CB4004D22 /* CompareView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		864EF0D2D07B481CB4004DA1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = VitiligoTracker/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.private.VitiligoTracker";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+				ENABLE_PREVIEWS = YES;
+			};
+			name = Debug;
+		};
+		864EF0D2D07B481CB4004DA2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = VitiligoTracker/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.private.VitiligoTracker";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+				ENABLE_PREVIEWS = YES;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		864EF0D2D07B481CB4004DF1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		864EF0D2D07B481CB4004DF2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		864EF0D2D07B481CB4004DA0 /* Build configuration list for PBXNativeTarget "VitiligoTracker" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				864EF0D2D07B481CB4004DA1 /* Debug */,
+				864EF0D2D07B481CB4004DA2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		864EF0D2D07B481CB4004DF0 /* Build configuration list for PBXProject "VitiligoTracker" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				864EF0D2D07B481CB4004DF1 /* Debug */,
+				864EF0D2D07B481CB4004DF2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+	};
+	rootObject = 864EF0D2D07B481CB4004DE0 /* Project object */;
+}
