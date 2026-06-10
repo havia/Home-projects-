@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F-ZERO: ECLIPSE CIRCUIT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #000008;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+    font-family: 'Orbitron', monospace;
+  }
+  #c {
+    display: block;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+// ============================================================
+// SECTION 1: CONSTANTS & CONFIG
+// ============================================================
+const W = 800, H = 600;
+const TRACK_LEN = 800;
+const DRAW_DIST = 150;
+const SEGMENT_LEN = 200;
+const ROAD_W = 2000;
+const BASE_HORIZON = Math.floor(H * 0.42);
+const CAM_HEIGHT = 1500;
+const CAM_DEPTH = 0.84;
+const MAX_SPEED = 800;
+const BASE_SPEED = 400;
+const BOOST_DRAIN = 0.008;
+const BOOST_REGEN = 0.003;
+const HEALTH_DRAIN = 0.006;
+const SPEED_SCALE = TRACK_LEN / (42 * 550);
+const CENTRIFUGAL_K = 0.28;
+const TOTAL_LAPS = 3;
+
+// ============================================================
+// SECTION 2: TRACK DEFINITION
+// ============================================================
+function buildTrack() {
+  const runs = [
+    { len: 80,  curve: 0,     hill: 0    },
+    { len: 55,  curve: 2.4,   hill: 0    },
+    { len: 35,  curve: 0,     hill: 1.8  },
+    { len: 45,  curve: -3.0,  hill: 0    },
+    { len: 30,  curve: 0,     hill: -1.5 },
+    { len: 65,  curve: 1.6,   hill: 0    },
+    { len: 45,  curve: -2.2,  hill: 0    },
+    { len: 60,  curve: 0,     hill: 0    },
+    { len: 75,  curve: 2.0,   hill: 1.2  },
+    { len: 50,  curve: -2.8,  hill: 0    },
+    { len: 40,  curve: 0,     hill: 0    },
+    { len: 50,  curve: 1.8,   hill: -1.0 },
+    { len: 30,  curve: 0,     hill: 0    },
+    { len: 40,  curve: -1.5,  hill: 0    },
+    { len: 100, curve: 0,     hill: 0    },
+  ];
+  const segs = [];
+  let i = 0;
+  for (const run of runs) {
+    for (let j = 0; j < run.len && i < TRACK_LEN; j++, i++) {
+      segs.push({
+        index: i,
+        curve: run.curve,
+        hill: run.hill,
+        colorIdx: Math.floor(i / 4) % 2,
+        checkpoint: (i >= 395 && i <= 405),
+        boost_pad: (i % 97 === 13),
+        start_line: (i < 5)
+      });
+    }
+  }
+  while (segs.length < TRACK_LEN) {
+    segs.push({ index: segs.length, curve: 0, hill: 0, colorIdx: segs.length % 2, checkpoint: false, boost_pad: false, start_line: segs.length < 5 });
+  }
+  return segs;
+}
+const TRACK = buildTrack();
+
+// ============================================================
+// SECTION 3: CANVAS SETUP & OFF-SCREEN BUFFERS
+// ============================================================
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+canvas.width = W; canvas.height = H;
+
+const mainCanvas = document.createElement('canvas');
+mainCanvas.width = W; mainCanvas.height = H;
+const mc = mainCanvas.getContext('2d');
+
+const offR = document.createElement('canvas');
+offR.width = W; offR.height = H;
+const ctxR = offR.getContext('2d');
+const offB = document.createElement('canvas');
+offB.width = W; offB.height = H;
+const ctxB = offB.getContext('2d');
+
+function resize() {
+  const scale = Math.min(window.innerWidth / W, window.innerHeight / H);
+  canvas.style.width = (W * scale) + 'px';
+  canvas.style.height = (H * scale) + 'px';
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ============================================================
+// SECTION 4: STARFIELD (static, generated once)
+// ============================================================
+const STARS = Array.from({ length: 120 }, () => ({
+  x: Math.random() * W,
+  y: Math.random() * BASE_HORIZON * 0.9,
+  r: Math.random() * 1.5 + 0.3,
+  hue: Math.random() < 0.3 ? (Math.random() < 0.5 ? 180 : 280) : 0,
+  bright: Math.random() * 0.5 + 0.5
+}));
+
+// City silhouette (static rects at horizon)
+const CITY = Array.from({ length: 30 }, () => ({
+  x: Math.random() * W,
+  w: Math.random() * 30 + 8,
+  h: Math.random() * 60 + 10,
+  hue: [180, 280, 60][Math.floor(Math.random() * 3)]
+}));
+
+// ============================================================
+// SECTION 5: STATE INITIALIZATION
+// ============================================================
+const state = {
+  player: {
+    pos: 0, x: 0, speed: BASE_SPEED,
+    boost: 1.0, health: 1.0,
+    steer: 0, banking: 0,
+    lap: 1, checkpointHit: false, lapStarted: false,
+    position: 1, bestLap: Infinity, lapTime: 0,
+    totalTime: 0
+  },
+  ai: [
+    { id: 0, pos: -SEGMENT_LEN * 3,  x:  300, speed: 555, base_speed: 555, curve_skill: 0.75, color: '#ff4400', lap: 1, checkpointHit: false, lapStarted: false },
+    { id: 1, pos: -SEGMENT_LEN * 6,  x: -200, speed: 535, base_speed: 535, curve_skill: 0.88, color: '#aa00ff', lap: 1, checkpointHit: false, lapStarted: false },
+    { id: 2, pos: -SEGMENT_LEN * 9,  x:  100, speed: 575, base_speed: 575, curve_skill: 0.62, color: '#ffcc00', lap: 1, checkpointHit: false, lapStarted: false },
+  ],
+  keys: {},
+  camera: { z: 0, x: 0 },
+  fx: { shakeX: 0, shakeY: 0, chromAbr: 0, vignette: 0, boostFlash: 0 },
+  race: { state: 'countdown', countdown: 3, countdownTimer: 1.5, totalTime: 0, finished: false, finishTime: 0, playerFinPos: 1 },
+  horizon: BASE_HORIZON
+};
+
+// ============================================================
+// SECTION 6: INPUT
+// ============================================================
+window.addEventListener('keydown', e => {
+  state.keys[e.code] = true;
+  if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','ShiftLeft','ShiftRight','Space'].includes(e.key) || e.code.startsWith('Arrow') || e.code.startsWith('Shift')) {
+    e.preventDefault();
+  }
+});
+window.addEventListener('keyup', e => { state.keys[e.code] = false; });
+
+// ============================================================
+// SECTION 7: TRACK PROJECTION MATH
+// ============================================================
+function projectSegment(drawIndex, curveX, hillY, camX) {
+  const segZ = (drawIndex + 1) * SEGMENT_LEN;
+  const scale = CAM_DEPTH / segZ;
+  const screenX = Math.round((0.5 + scale * (curveX - camX / ROAD_W * 0.5)) * W);
+  const screenY = Math.round((0.5 - scale * (CAM_HEIGHT / SEGMENT_LEN)) * H + hillY);
+  const screenW = Math.round(scale * ROAD_W * W * 0.5);
+  return { screenX, screenY, screenW, scale, segZ };
+}
+
+function getProjectedSegments(camZ, camX) {
+  const startPos = Math.floor(camZ / SEGMENT_LEN);
+  const result = [];
+  let curveX = 0, curveDX = 0;
+  let hillY = 0, hillDY = 0;
+
+  // Accumulate hill shift for dynamic horizon
+  let horizonShift = 0;
+  for (let i = 0; i < Math.min(30, DRAW_DIST); i++) {
+    const seg = TRACK[(startPos + i) % TRACK_LEN];
+    horizonShift += seg.hill * (1 - i / 30) * 1.8;
+  }
+  state.horizon = BASE_HORIZON + horizonShift;
+
+  for (let i = 0; i < DRAW_DIST; i++) {
+    const segIdx = (startPos + i) % TRACK_LEN;
+    const seg = TRACK[segIdx];
+
+    curveDX += seg.curve * 0.9;
+    curveX += curveDX * 0.015;
+    hillDY += seg.hill;
+    hillY += hillDY * 0.008;
+
+    const p = projectSegment(i, curveX, state.horizon + hillY, camX);
+    result.push({ seg, segIdx, drawIndex: i, ...p, curveX });
+  }
+
+  // Clip: far segments shouldn't render below nearer ones
+  let clipY = H;
+  for (let i = result.length - 1; i >= 0; i--) {
+    result[i].clipY = clipY;
+    if (result[i].screenY < clipY) clipY = result[i].screenY;
+  }
+  return result;
+}
+
+// ============================================================
+// SECTION 8: ROAD RENDERER
+// ============================================================
+function drawTrap(ctx, x1, y1, x2, y2, x3, y3, x4, y4) {
+  ctx.beginPath();
+  ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+  ctx.lineTo(x4, y4); ctx.lineTo(x3, y3);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawSegment(ctx, near, far, aiAtDepth) {
+  const p1 = far, p2 = near;
+  if (p2.screenY <= p2.clipY) return;
+
+  const segH = p2.screenY - p1.screenY;
+  if (segH <= 0) return;
+
+  const r = p1.seg.colorIdx;
+  const y1 = p1.screenY, y2 = Math.min(p2.screenY, p2.clipY);
+
+  // Grass
+  ctx.fillStyle = r ? '#0a260a' : '#0d310d';
+  ctx.fillRect(0, y1, W, y2 - y1);
+
+  // Road surface
+  ctx.fillStyle = r ? '#1a1a2e' : '#16213e';
+  drawTrap(ctx,
+    p1.screenX - p1.screenW, y1, p1.screenX + p1.screenW, y1,
+    p2.screenX - p2.screenW, y2, p2.screenX + p2.screenW, y2
+  );
+
+  // Rumble strips
+  const rW1 = p1.screenW * 0.14, rW2 = p2.screenW * 0.14;
+  ctx.fillStyle = r ? '#ff0044' : '#eeeeee';
+  // Left
+  drawTrap(ctx,
+    p1.screenX - p1.screenW - rW1, y1, p1.screenX - p1.screenW, y1,
+    p2.screenX - p2.screenW - rW2, y2, p2.screenX - p2.screenW, y2
+  );
+  // Right
+  drawTrap(ctx,
+    p1.screenX + p1.screenW, y1, p1.screenX + p1.screenW + rW1, y1,
+    p2.screenX + p2.screenW, y2, p2.screenX + p2.screenW + rW2, y2
+  );
+
+  // Neon edge glow
+  ctx.save();
+  ctx.strokeStyle = '#00ffff';
+  ctx.shadowColor = '#00ffff';
+  ctx.shadowBlur = 6 * p1.scale * 80;
+  ctx.lineWidth = Math.max(1, p1.scale * 60);
+  ctx.globalAlpha = 0.85;
+  ctx.beginPath();
+  ctx.moveTo(p1.screenX - p1.screenW, y1);
+  ctx.lineTo(p2.screenX - p2.screenW, y2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(p1.screenX + p1.screenW, y1);
+  ctx.lineTo(p2.screenX + p2.screenW, y2);
+  ctx.stroke();
+  ctx.restore();
+
+  // Center lane dashes
+  if (r === 0 && Math.abs(p1.seg.curve) < 1.5) {
+    const dw1 = p1.screenW * 0.03, dw2 = p2.screenW * 0.03;
+    ctx.fillStyle = 'rgba(0,200,255,0.5)';
+    drawTrap(ctx,
+      p1.screenX - dw1, y1, p1.screenX + dw1, y1,
+      p2.screenX - dw2, y2, p2.screenX + dw2, y2
+    );
+  }
+
+  // Boost pad
+  if (p1.seg.boost_pad) {
+    ctx.save();
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = '#00ffcc';
+    ctx.shadowColor = '#00ffcc';
+    ctx.shadowBlur = 20;
+    drawTrap(ctx,
+      p1.screenX - p1.screenW * 0.6, y1, p1.screenX + p1.screenW * 0.6, y1,
+      p2.screenX - p2.screenW * 0.6, y2, p2.screenX + p2.screenW * 0.6, y2
+    );
+    ctx.restore();
+  }
+
+  // Start line
+  if (p1.seg.start_line) {
+    ctx.save();
+    ctx.globalAlpha = 0.7;
+    ctx.fillStyle = '#ffffff';
+    const sw1 = p1.screenW * 0.06, sw2 = p2.screenW * 0.06;
+    for (let k = -3; k <= 3; k += 2) {
+      drawTrap(ctx,
+        p1.screenX + k * sw1 * 2, y1, p1.screenX + (k+1) * sw1 * 2, y1,
+        p2.screenX + k * sw2 * 2, y2, p2.screenX + (k+1) * sw2 * 2, y2
+      );
+    }
+    ctx.restore();
+  }
+
+  // AI ships at this depth
+  if (aiAtDepth) {
+    for (const ai of aiAtDepth) {
+      drawAIShip(ctx, ai, p2);
+    }
+  }
+}
+
+// ============================================================
+// SECTION 9: SKY & BACKGROUND
+// ============================================================
+function drawSky(ctx, horizon) {
+  // Sky gradient
+  const grad = ctx.createLinearGradient(0, 0, 0, horizon);
+  grad.addColorStop(0, '#000008');
+  grad.addColorStop(0.7, '#080018');
+  grad.addColorStop(1, '#0a0025');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, horizon + 2);
+
+  // Stars
+  for (const s of STARS) {
+    const flicker = state.fx.chromAbr > 0.3 ? Math.random() : 1;
+    ctx.save();
+    if (s.hue > 0) {
+      ctx.fillStyle = `hsl(${s.hue}, 100%, ${70 * s.bright * flicker}%)`;
+    } else {
+      ctx.fillStyle = `rgba(255,255,255,${s.bright * flicker})`;
+    }
+    ctx.shadowColor = s.hue > 0 ? `hsl(${s.hue},100%,70%)` : '#ffffff';
+    ctx.shadowBlur = s.r * 3;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // City silhouette
+  for (const b of CITY) {
+    ctx.save();
+    ctx.globalAlpha = 0.25;
+    ctx.fillStyle = `hsl(${b.hue},80%,20%)`;
+    ctx.shadowColor = `hsl(${b.hue},100%,60%)`;
+    ctx.shadowBlur = 8;
+    ctx.fillRect(b.x, horizon - b.h, b.w, b.h);
+    // Window glints
+    ctx.globalAlpha = 0.6;
+    ctx.fillStyle = `hsl(${b.hue},100%,70%)`;
+    for (let wy = horizon - b.h + 5; wy < horizon - 4; wy += 8) {
+      if (Math.random() < 0.4) {
+        ctx.fillRect(b.x + Math.random() * (b.w - 4), wy, 3, 3);
+      }
+    }
+    ctx.restore();
+  }
+
+  // Horizon glow band
+  const hGrad = ctx.createLinearGradient(0, horizon - 12, 0, horizon + 4);
+  hGrad.addColorStop(0, 'rgba(0,200,255,0)');
+  hGrad.addColorStop(0.5, 'rgba(0,200,255,0.12)');
+  hGrad.addColorStop(1, 'rgba(0,200,255,0)');
+  ctx.fillStyle = hGrad;
+  ctx.fillRect(0, horizon - 12, W, 16);
+}
+
+// Ground scroll pattern (visible in grass margins)
+function drawGroundPattern(ctx, camZ, speed, horizon) {
+  const scrollRate = (camZ * 0.04 * (speed / MAX_SPEED)) % 48;
+  ctx.save();
+  ctx.globalAlpha = 0.10;
+  ctx.strokeStyle = '#00ffcc';
+  ctx.lineWidth = 0.5;
+  for (let y = horizon; y < H; y += 48) {
+    for (let x = 0; x < W; x += 48) {
+      ctx.strokeRect(x, y + scrollRate, 48, 48);
+    }
+  }
+  ctx.restore();
+}
+
+// ============================================================
+// SECTION 10: AI SHIP RENDERING
+// ============================================================
+function drawAIShip(ctx, ai, proj) {
+  const shipW = Math.max(3, 70 * proj.scale * 2.2);
+  const shipH = Math.max(1, 22 * proj.scale * 2.2);
+  const shipX = proj.screenX + (ai.x / ROAD_W) * proj.screenW;
+  const shipY = proj.screenY - shipH * 0.3;
+
+  ctx.save();
+  ctx.shadowColor = ai.color;
+  ctx.shadowBlur = 18;
+  ctx.globalAlpha = 0.92;
+  ctx.fillStyle = ai.color;
+  // Hull
+  ctx.beginPath();
+  ctx.ellipse(shipX, shipY, shipW * 0.5, shipH * 0.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Nose
+  ctx.beginPath();
+  ctx.moveTo(shipX + shipW * 0.5, shipY);
+  ctx.lineTo(shipX + shipW * 0.9, shipY);
+  ctx.lineTo(shipX + shipW * 0.5, shipY + shipH * 0.3);
+  ctx.fill();
+  // Engine glow
+  ctx.shadowBlur = 12;
+  ctx.fillStyle = '#ffffff';
+  ctx.globalAlpha = 0.7;
+  ctx.beginPath();
+  ctx.ellipse(shipX - shipW * 0.45, shipY, shipW * 0.08, shipH * 0.25, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+// ============================================================
+// SECTION 11: PLAYER SHIP RENDERER
+// ============================================================
+function drawPlayerShip(ctx, player) {
+  const cx = W / 2;
+  const cy = H - 92;
+  const bankRad = player.banking * (Math.PI / 180) * 0.28;
+  const boosting = state.keys['ShiftLeft'] || state.keys['ShiftRight'];
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(bankRad);
+
+  // Hover shadow
+  ctx.save();
+  ctx.globalAlpha = 0.12;
+  ctx.fillStyle = boosting ? '#00ffcc' : '#0066ff';
+  ctx.beginPath();
+  ctx.ellipse(0, 26, 58, 9, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // Glow layers
+  const glowColor = boosting ? '#00ffcc' : '#00aaff';
+  for (let g = 2; g >= 0; g--) {
+    ctx.save();
+    const s = 1 + g * 0.09;
+    ctx.scale(s, s);
+    ctx.globalAlpha = g === 0 ? 1 : (0.12 - g * 0.04);
+    ctx.shadowColor = glowColor;
+    ctx.shadowBlur = g === 0 ? (boosting ? 28 : 14) : 0;
+    drawShipBody(ctx, boosting, glowColor, player);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function drawShipBody(ctx, boosting, color, player) {
+  // Wing skew based on banking (lateral lean)
+  const skew = player.banking * 0.003;
+
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(0, -20);           // nose tip
+  ctx.lineTo(48 + skew * 10, 4);
+  ctx.lineTo(40 + skew * 8,  14);
+  ctx.lineTo(14, 10);
+  ctx.lineTo(10, 20);
+  ctx.lineTo(0, 18);
+  ctx.lineTo(-10, 20);
+  ctx.lineTo(-14, 10);
+  ctx.lineTo(-40 - skew * 8, 14);
+  ctx.lineTo(-48 - skew * 10, 4);
+  ctx.closePath();
+  ctx.fill();
+
+  // Fuselage highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  ctx.beginPath();
+  ctx.moveTo(0, -18);
+  ctx.lineTo(16, 2);
+  ctx.lineTo(0, 6);
+  ctx.lineTo(-16, 2);
+  ctx.closePath();
+  ctx.fill();
+
+  // Cockpit
+  ctx.fillStyle = 'rgba(160,230,255,0.9)';
+  ctx.shadowBlur = 8;
+  ctx.shadowColor = '#80e0ff';
+  ctx.beginPath();
+  ctx.ellipse(0, -5, 11, 7, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Engine nacelles
+  const exhaust = boosting ? 16 : 9;
+  const exColor = boosting ? '#ff8800' : '#0088ff';
+  ctx.shadowColor = exColor;
+  ctx.shadowBlur = 18;
+  ctx.fillStyle = exColor;
+  ctx.beginPath();
+  ctx.ellipse(-12 - skew * 5, 20, 4.5, exhaust, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(12 + skew * 5, 20, 4.5, exhaust, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Fin
+  ctx.fillStyle = color;
+  ctx.shadowBlur = 4;
+  ctx.beginPath();
+  ctx.moveTo(0, -20);
+  ctx.lineTo(0, -32);
+  ctx.lineTo(6, -22);
+  ctx.closePath();
+  ctx.fill();
+}
+
+// ============================================================
+// SECTION 12: HUD RENDERER
+// ============================================================
+function drawHUD(ctx, player, race) {
+  ctx.save();
+  ctx.shadowBlur = 0;
+
+  // Speed (large, center bottom)
+  const spd = Math.round(player.speed);
+  ctx.font = 'bold 36px Orbitron, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#00ffcc';
+  ctx.shadowColor = '#00ffcc';
+  ctx.shadowBlur = 12;
+  ctx.fillText(spd + ' KM/H', W / 2, H - 10);
+
+  // Lap (top center)
+  ctx.font = 'bold 18px Orbitron, monospace';
+  ctx.fillStyle = '#ffffff';
+  ctx.shadowColor = '#ffffff';
+  ctx.shadowBlur = 6;
+  ctx.fillText(`LAP  ${Math.min(player.lap, TOTAL_LAPS)} / ${TOTAL_LAPS}`, W / 2, 30);
+
+  // Position (top left)
+  ctx.textAlign = 'left';
+  ctx.font = 'bold 22px Orbitron, monospace';
+  ctx.fillStyle = player.position === 1 ? '#ffcc00' : '#ffffff';
+  ctx.shadowColor = ctx.fillStyle;
+  ctx.shadowBlur = 8;
+  ctx.fillText(`P${player.position}`, 18, 30);
+
+  // Race time (top right)
+  ctx.textAlign = 'right';
+  ctx.font = '13px Orbitron, monospace';
+  ctx.fillStyle = '#aaaacc';
+  ctx.shadowBlur = 0;
+  ctx.fillText(fmtTime(race.totalTime), W - 18, 30);
+
+  // Boost bar
+  drawBar(ctx, 18, H - 55, 130, 12, player.boost, '#00ffcc', '#001a14', 'BOOST');
+
+  // Health bar
+  const hColor = player.health > 0.3 ? '#ff4488' : '#ff1111';
+  drawBar(ctx, W - 148, H - 55, 130, 12, player.health, hColor, '#1a0011', 'HULL');
+
+  ctx.restore();
+}
+
+function drawBar(ctx, x, y, w, h, val, fillColor, bgColor, label) {
+  // Label
+  ctx.font = '10px Orbitron, monospace';
+  ctx.textAlign = 'left';
+  ctx.fillStyle = fillColor;
+  ctx.shadowColor = fillColor;
+  ctx.shadowBlur = 4;
+  ctx.fillText(label, x, y - 3);
+
+  // BG
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(x, y, w, h);
+
+  // Fill
+  ctx.fillStyle = fillColor;
+  ctx.shadowColor = fillColor;
+  ctx.shadowBlur = 8;
+  ctx.fillRect(x, y, Math.max(0, w * val), h);
+  ctx.shadowBlur = 0;
+
+  // Border
+  ctx.strokeStyle = fillColor;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x, y, w, h);
+}
+
+function fmtTime(t) {
+  const m = Math.floor(t / 60);
+  const s = Math.floor(t % 60);
+  const ms = Math.floor((t % 1) * 100);
+  return `${m}:${String(s).padStart(2,'0')}.${String(ms).padStart(2,'0')}`;
+}
+
+// ============================================================
+// SECTION 13: POST-PROCESS EFFECTS
+// ============================================================
+function applyChromAbr(ctx, intensity) {
+  if (intensity < 0.04) return;
+  const offset = Math.round(intensity * 9);
+
+  ctxR.clearRect(0, 0, W, H);
+  ctxR.drawImage(mainCanvas, 0, 0);
+  ctxR.globalCompositeOperation = 'multiply';
+  ctxR.fillStyle = `rgba(255,0,0,${intensity * 0.55})`;
+  ctxR.fillRect(0, 0, W, H);
+  ctxR.globalCompositeOperation = 'source-over';
+
+  ctxB.clearRect(0, 0, W, H);
+  ctxB.drawImage(mainCanvas, 0, 0);
+  ctxB.globalCompositeOperation = 'multiply';
+  ctxB.fillStyle = `rgba(0,0,255,${intensity * 0.55})`;
+  ctxB.fillRect(0, 0, W, H);
+  ctxB.globalCompositeOperation = 'source-over';
+
+  ctx.globalCompositeOperation = 'screen';
+  ctx.globalAlpha = Math.min(0.65, intensity * 0.7);
+  ctx.drawImage(offR, -offset, 0);
+  ctx.drawImage(offB, offset, 0);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+function drawVignette(ctx, intensity) {
+  if (intensity < 0.01) return;
+  const g = ctx.createRadialGradient(W/2, H/2, H*0.28, W/2, H/2, H*0.85);
+  g.addColorStop(0, 'rgba(0,0,0,0)');
+  g.addColorStop(1, `rgba(0,0,15,${Math.min(0.85, intensity)})`);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+}
+
+function drawSpeedLines(ctx, intensity, t) {
+  if (intensity < 0.25) return;
+  ctx.save();
+  ctx.globalAlpha = (intensity - 0.25) * 0.55;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 0.8;
+  const cx = W / 2, cy = H * 0.55;
+  const n = Math.floor(intensity * 28);
+  for (let i = 0; i < n; i++) {
+    const angle = (i / n) * Math.PI * 2 + t * 0.0003;
+    const r1 = H * 0.18 + Math.sin(i * 2.3 + t * 0.001) * 20;
+    const r2 = H * 0.42 + Math.sin(i * 1.7) * H * 0.15;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(angle) * r1, cy + Math.sin(angle) * r1);
+    ctx.lineTo(cx + Math.cos(angle) * r2, cy + Math.sin(angle) * r2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawBoostFlash(ctx, flash) {
+  if (flash <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = flash * 0.35;
+  ctx.fillStyle = '#00ffcc';
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+}
+
+// ============================================================
+// SECTION 14: AI UPDATE
+// ============================================================
+function updateAI(dt) {
+  for (const ai of state.ai) {
+    const segIdx = ((Math.floor(ai.pos / SEGMENT_LEN)) % TRACK_LEN + TRACK_LEN) % TRACK_LEN;
+    const seg = TRACK[segIdx];
+
+    // Speed with sine jitter
+    ai.speed = ai.base_speed + Math.sin(ai.pos * 0.00008 + ai.id * 2.1) * 35;
+
+    // Steer toward racing line
+    const targetX = -seg.curve * 280;
+    ai.x += (targetX - ai.x) * ai.curve_skill * dt * 2.2;
+    ai.x = Math.max(-ROAD_W * 0.82, Math.min(ROAD_W * 0.82, ai.x));
+
+    ai.pos += ai.speed * SPEED_SCALE * dt;
+
+    // Lap tracking
+    const newSeg = ((Math.floor(ai.pos / SEGMENT_LEN)) % TRACK_LEN + TRACK_LEN) % TRACK_LEN;
+    if (!ai.checkpointHit && newSeg >= 395 && newSeg <= 405) ai.checkpointHit = true;
+    if (ai.checkpointHit && newSeg < 10 && ai.lapStarted) {
+      ai.checkpointHit = false;
+      if (ai.lap <= TOTAL_LAPS) ai.lap++;
+    }
+    ai.lapStarted = true;
+  }
+}
+
+function updatePositions() {
+  const all = [
+    { id: 'player', score: state.player.lap * TRACK_LEN * SEGMENT_LEN + state.player.pos },
+    ...state.ai.map(ai => ({ id: ai.id, score: ai.lap * TRACK_LEN * SEGMENT_LEN + ai.pos }))
+  ];
+  all.sort((a, b) => b.score - a.score);
+  state.player.position = all.findIndex(a => a.id === 'player') + 1;
+}
+
+// ============================================================
+// SECTION 15: SCREEN STATE OVERLAYS
+// ============================================================
+function drawCountdown(ctx, val, timer) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,10,0.55)';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.textAlign = 'center';
+  ctx.shadowBlur = 30;
+
+  if (val > 0) {
+    const pulse = 1 + Math.sin(timer * Math.PI) * 0.15;
+    ctx.font = `bold ${Math.round(90 * pulse)}px Orbitron, monospace`;
+    ctx.fillStyle = '#ffcc00';
+    ctx.shadowColor = '#ffcc00';
+    ctx.fillText(val, W / 2, H / 2 + 30);
+  } else {
+    ctx.font = 'bold 72px Orbitron, monospace';
+    ctx.fillStyle = '#00ffcc';
+    ctx.shadowColor = '#00ffcc';
+    ctx.fillText('GO!', W / 2, H / 2 + 30);
+  }
+
+  ctx.font = '20px Orbitron, monospace';
+  ctx.fillStyle = '#aaaacc';
+  ctx.shadowBlur = 6;
+  ctx.fillText('ECLIPSE CIRCUIT', W / 2, H / 2 - 60);
+
+  ctx.font = '13px Orbitron, monospace';
+  ctx.fillStyle = '#667788';
+  ctx.shadowBlur = 0;
+  ctx.fillText('ARROWS to steer  ·  SHIFT to boost', W / 2, H * 0.78);
+  ctx.restore();
+}
+
+function drawFinish(ctx, player, race) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,10,0.78)';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.textAlign = 'center';
+  ctx.shadowBlur = 30;
+
+  const medal = ['', '1ST', '2ND', '3RD', '4TH'][race.playerFinPos];
+  const color = race.playerFinPos === 1 ? '#ffcc00' : race.playerFinPos === 2 ? '#aaaaff' : '#cc8844';
+
+  ctx.font = 'bold 20px Orbitron, monospace';
+  ctx.fillStyle = '#aaaacc';
+  ctx.shadowBlur = 0;
+  ctx.fillText('RACE COMPLETE', W / 2, H / 2 - 80);
+
+  ctx.font = `bold 88px Orbitron, monospace`;
+  ctx.fillStyle = color;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 28;
+  ctx.fillText(medal, W / 2, H / 2 + 10);
+
+  ctx.font = '18px Orbitron, monospace';
+  ctx.fillStyle = '#00ffcc';
+  ctx.shadowColor = '#00ffcc';
+  ctx.shadowBlur = 8;
+  ctx.fillText('TIME  ' + fmtTime(race.finishTime), W / 2, H / 2 + 60);
+
+  ctx.font = '13px Orbitron, monospace';
+  ctx.fillStyle = '#556677';
+  ctx.shadowBlur = 0;
+  ctx.fillText('Refresh to race again', W / 2, H * 0.82);
+  ctx.restore();
+}
+
+// ============================================================
+// SECTION 16: UPDATE (GAME LOGIC)
+// ============================================================
+function update(dt, t) {
+  const race = state.race;
+
+  // Countdown phase
+  if (race.state === 'countdown') {
+    race.countdownTimer -= dt;
+    if (race.countdownTimer <= 0) {
+      race.countdown--;
+      if (race.countdown < 0) {
+        race.state = 'racing';
+        state.fx.boostFlash = 0.5;
+      } else {
+        race.countdownTimer = 1.0;
+      }
+    }
+    // Let the road scroll slowly during countdown for atmosphere
+    state.player.speed = 0;
+    return;
+  }
+
+  if (race.state === 'finished') return;
+
+  race.totalTime += dt;
+
+  const p = state.player;
+  const keys = state.keys;
+  const boosting = (keys['ShiftLeft'] || keys['ShiftRight']) && p.boost > 0 && p.health > 0;
+
+  // Speed
+  const targetSpeed = boosting ? MAX_SPEED : BASE_SPEED;
+  p.speed += (targetSpeed - p.speed) * (boosting ? 0.045 : 0.035);
+
+  // Boost / health
+  if (boosting) {
+    p.boost = Math.max(0, p.boost - BOOST_DRAIN);
+    p.health = Math.max(0, p.health - HEALTH_DRAIN);
+    state.fx.chromAbr = Math.min(1, state.fx.chromAbr + 0.09);
+    state.fx.boostFlash = Math.max(state.fx.boostFlash, 0.08);
+  } else {
+    p.boost = Math.min(1, p.boost + BOOST_REGEN);
+    state.fx.chromAbr = Math.max(0, state.fx.chromAbr - 0.06);
+  }
+  state.fx.boostFlash = Math.max(0, state.fx.boostFlash - 0.06);
+
+  // Steer
+  const steerIn = (keys['ArrowLeft'] ? -1 : 0) + (keys['ArrowRight'] ? 1 : 0);
+  p.steer += (steerIn - p.steer) * 0.22;
+  p.banking += (steerIn * -26 - p.banking) * 0.10;
+
+  // Current segment
+  const segIdx = ((Math.floor(p.pos / SEGMENT_LEN)) % TRACK_LEN + TRACK_LEN) % TRACK_LEN;
+  const seg = TRACK[segIdx];
+
+  // Centrifugal drift
+  p.x += seg.curve * CENTRIFUGAL_K * (p.speed / MAX_SPEED) * 60 * dt;
+
+  // Player steering
+  const steerPower = 2400 * (p.speed / MAX_SPEED);
+  p.x += steerIn * steerPower * dt;
+
+  // Off-road boundary
+  if (Math.abs(p.x) > ROAD_W * 1.12) {
+    p.speed *= 0.94;
+    p.x = Math.sign(p.x) * ROAD_W * 1.12;
+  } else if (Math.abs(p.x) > ROAD_W) {
+    p.speed *= 0.985;
+  }
+
+  // Advance along track
+  p.pos += p.speed * SPEED_SCALE * dt;
+  p.lapTime += dt;
+  race.totalTime; // already incremented above
+
+  // Checkpoint & lap logic
+  const newSeg = ((Math.floor(p.pos / SEGMENT_LEN)) % TRACK_LEN + TRACK_LEN) % TRACK_LEN;
+  if (!p.checkpointHit && newSeg >= 395 && newSeg <= 405) p.checkpointHit = true;
+  if (p.checkpointHit && newSeg < 10 && p.lapStarted) {
+    p.checkpointHit = false;
+    p.lap++;
+    if (p.lapTime < p.bestLap) p.bestLap = p.lapTime;
+    p.lapTime = 0;
+    if (p.lap > TOTAL_LAPS) {
+      race.state = 'finished';
+      race.finishTime = race.totalTime;
+      race.playerFinPos = p.position;
+      return;
+    }
+  }
+  p.lapStarted = true;
+
+  // Camera
+  state.camera.z = p.pos;
+  state.camera.x = p.x * 0.38;
+
+  // Screen effects
+  const speedRatio = Math.max(0, (p.speed - BASE_SPEED) / (MAX_SPEED - BASE_SPEED));
+  state.fx.shakeX = (Math.random() - 0.5) * speedRatio * 5;
+  state.fx.shakeY = (Math.random() - 0.5) * speedRatio * 2.5;
+  state.fx.vignette = speedRatio * 0.65;
+
+  // AI & positions
+  updateAI(dt);
+  updatePositions();
+}
+
+// ============================================================
+// SECTION 17: RENDER PIPELINE
+// ============================================================
+function render(t) {
+  const p = state.player;
+  const race = state.race;
+
+  // — Draw everything to mainCanvas —
+  mc.clearRect(0, 0, W, H);
+
+  mc.save();
+  mc.translate(state.fx.shakeX, state.fx.shakeY);
+
+  const horizon = state.horizon;
+  drawSky(mc, horizon);
+  drawGroundPattern(mc, state.camera.z, p.speed, horizon);
+
+  // Segment projection
+  const projSegs = getProjectedSegments(state.camera.z, state.camera.x);
+
+  // Build per-depth AI map
+  const aiByDepth = {};
+  const playerSegIdx = ((Math.floor(p.pos / SEGMENT_LEN)) % TRACK_LEN + TRACK_LEN) % TRACK_LEN;
+  for (const ai of state.ai) {
+    const aiSegIdx = ((Math.floor(ai.pos / SEGMENT_LEN)) % TRACK_LEN + TRACK_LEN) % TRACK_LEN;
+    let di = (aiSegIdx - playerSegIdx + TRACK_LEN) % TRACK_LEN;
+    if (di > 0 && di < DRAW_DIST - 1) {
+      if (!aiByDepth[di]) aiByDepth[di] = [];
+      aiByDepth[di].push(ai);
+    }
+  }
+
+  // Draw segments far-to-near
+  for (let i = projSegs.length - 1; i >= 1; i--) {
+    drawSegment(mc, projSegs[i], projSegs[i - 1], aiByDepth[i]);
+  }
+
+  drawPlayerShip(mc, p);
+  mc.restore();
+
+  // — Composite to visible canvas —
+  ctx.clearRect(0, 0, W, H);
+  ctx.drawImage(mainCanvas, 0, 0);
+
+  // Chromatic aberration
+  applyChromAbr(ctx, state.fx.chromAbr);
+
+  // Post-process overlays (drawn on visible canvas, above aberration)
+  drawVignette(ctx, state.fx.vignette);
+  drawSpeedLines(ctx, state.fx.chromAbr, t);
+  drawBoostFlash(ctx, state.fx.boostFlash);
+
+  // HUD (always crisp, drawn last)
+  drawHUD(ctx, p, race);
+
+  // Screen state overlays
+  if (race.state === 'countdown') {
+    drawCountdown(ctx, race.countdown, race.countdownTimer);
+  } else if (race.state === 'finished') {
+    drawFinish(ctx, p, race);
+  }
+}
+
+// ============================================================
+// SECTION 18: MAIN LOOP
+// ============================================================
+let lastTime = 0;
+
+function loop(ts) {
+  const dt = Math.min((ts - lastTime) / 1000, 0.05);
+  lastTime = ts;
+  update(dt, ts);
+  render(ts);
+  requestAnimationFrame(loop);
+}
+
+requestAnimationFrame(ts => { lastTime = ts; requestAnimationFrame(loop); });
+</script>
+</body>
+</html>
